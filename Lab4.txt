@@ -1,0 +1,821 @@
+$NOMOD51
+$INCLUDE (8051.MCU)
+
+FLAG EQU P3.0
+RS EQU P3.5
+RW EQU P3.6
+EN EQU P3.7
+
+ROWA EQU P2.0
+ROWB EQU P2.1
+ROWC EQU P2.2
+ROWD EQU P2.3
+COL1 EQU P2.4
+COL2 EQU P2.5
+COL3 EQU P2.6
+COL4 EQU P2.7
+Keycode	EQU 34h
+Col 	EQU 32h
+
+OP1	EQU 11h
+Dau1	EQU 12h
+OP2	EQU 13h
+Dau2	EQU 14h
+OP3	EQU 15h
+Dau3	EQU 16h
+OP4	EQU 17h
+Dau4	EQU 18h
+OP5	EQU 19h
+
+   org   0000h
+   jmp   Start
+
+   org   0100h
+Start:
+   CALL LCD_INIT
+   MOV TMOD, #21H
+   MOV TH1, #0F3H
+   MOV SCON, #50H
+   SETB TR1
+   MOV OP1, #48D
+   MOV OP2, #48D
+   MOV OP3, #48D
+   MOV OP4, #48D
+   MOV OP5, #48D
+   MOV Dau1, #43D
+   MOV Dau2, #43D
+   MOV Dau3, #43D
+   MOV Dau4, #43D
+   
+Loop:
+   MOV A, #0D
+   CLR ROWA
+   CLR ROWB
+   CLR ROWC
+   CLR ROWD
+   JNB COL1, SCAN
+   JNB COL2, SCAN
+   JNB COL3, SCAN
+   JNB COL4, SCAN
+   JZ Loop
+
+SCAN:
+   CALL DELAY1
+   CALL SCAN_KEYPAD
+   MOV A, Keycode
+
+   CJNE A, #67D, CONTINUE
+   MOV A, #254D
+   CALL TRUYEN
+   MOV A, #1D
+   CALL TRUYEN
+   CALL DELAY
+   MOV R6, #0D
+   JMP Start
+   
+CONTINUE:
+   CJNE A, #61D, NEXT
+   CALL TRUYEN
+   CALL DELAY
+   MOV R0, Dau1
+   CJNE R0, #47D, E1
+   MOV R0, OP2
+   CJNE R0, #48D, E1
+   JMP ERROR
+E1:MOV R0, Dau2
+   CJNE R0, #47D, E2
+   MOV R0, OP3
+   CJNE R0, #48D, E2
+   JMP ERROR
+E2:MOV R0, Dau3
+   CJNE R0, #47D, E3
+   MOV R0, OP4
+   CJNE R0, #48D, E3
+   JMP ERROR
+E3:MOV R0, Dau4
+   CJNE R0, #47D, E4
+   MOV R0, OP5
+   CJNE R0, #48D, E4
+   JMP ERROR
+E4:
+   MOV A, B
+   CJNE A, #42D, E5
+   JMP ERROR
+E5:CJNE A, #43D, E6
+   JMP ERROR
+E6:CJNE A, #45D, E7
+   JMP ERROR
+E7:CJNE A, #47D, SOLVEX
+   JMP ERROR
+
+ERROR:
+   MOV A, #'E'
+   CALL TRUYEN
+   MOV A, #'R'
+   CALL TRUYEN
+   CALL TRUYEN
+   MOV A, #'O'
+   CALL TRUYEN
+   MOV A, #'R'
+   CALL TRUYEN
+
+LoopX: JMP Loop
+SOLVEX: JMP SOLVE
+
+
+NEXT: 
+   CJNE R6, #0D, NEXT1
+   MOV OP1, A
+   JMP LAST
+NEXT1:
+   CJNE R6, #1D, NEXT2
+   MOV Dau1, A
+   JMP LAST
+NEXT2:
+   CJNE R6, #2D, NEXT3
+   MOV OP2, A
+   JMP LAST
+NEXT3:
+   CJNE R6, #3D, NEXT4
+   MOV Dau2, A
+   JMP LAST
+NEXT4:
+   CJNE R6, #4D, NEXT5
+   MOV OP3, A
+   JMP LAST
+NEXT5:
+   CJNE R6, #5D, NEXT6
+   MOV Dau3, A
+   JMP LAST
+NEXT6:
+   CJNE R6, #6D, NEXT7
+   MOV OP4, A
+   JMP LAST
+NEXT7:
+   CJNE R6, #7D, NEXT8
+   MOV Dau4, A
+   JMP LAST
+NEXT8:
+   CJNE R6, #8D, LAST
+   MOV OP5, A
+
+LAST:
+   MOV B, A
+   CALL TRUYEN  
+   CALL DELAY
+   INC R6
+   CJNE A, #61D, LoopX
+
+SCAN_KEYPAD:
+   CLR ROWA
+   SETB ROWB
+   SETB ROWC
+   SETB ROWD
+   CALL CHECK_COL
+   MOV A, Col
+   JZ SCAN_ROWB
+   ADD A, #54D
+   CJNE A, #58D, DAU_CHIA
+   MOV A, #47D
+DAU_CHIA:
+   MOV Keycode, A
+   JMP DONE
+SCAN_ROWB:
+   CLR ROWB
+   SETB ROWA
+   SETB ROWC
+   SETB ROWD
+   CALL CHECK_COL
+   MOV A, Col
+   JZ SCAN_ROWC
+   ADD A, #51D
+   CJNE A, #55D, DAU_NHAN
+   MOV A, #42D
+DAU_NHAN:
+   MOV Keycode, A
+   JMP DONE
+SCAN_ROWC:
+   CLR ROWC
+   SETB ROWA
+   SETB ROWB
+   SETB ROWD
+   CALL CHECK_COL
+   MOV A, Col
+   JZ SCAN_ROWD
+   ADD A, #48D
+   CJNE A, #52D, DAU_TRU
+   MOV A, #45D
+DAU_TRU:
+   MOV Keycode, A
+   JMP DONE
+SCAN_ROWD:
+   CLR ROWD
+   SETB ROWA
+   SETB ROWB
+   SETB ROWC
+   CALL CHECK_COL
+   MOV A, Col
+   JZ DONE
+   ADD A, #46D
+   CJNE A, #47D, CHU_C
+   MOV A, #67D
+CHU_C:
+   CJNE A, #50D, DAU_CONG
+   MOV A, #43D
+DAU_CONG:
+   CJNE A, #49D, DAU_BANG
+   MOV A, #61D
+DAU_BANG:
+   MOV Keycode, A
+DONE:
+RET
+
+CHECK_COL:
+   JB COL1, CHECK_COL2
+   MOV Col, #1D
+   JMP FINISH
+CHECK_COL2:
+   JB COL2, CHECK_COL3
+   MOV Col, #2D
+   JMP FINISH
+CHECK_COL3:
+   JB COL3, CHECK_COL4
+   MOV Col, #3D
+   JMP FINISH
+CHECK_COL4:
+   JB COL4, NO_COL
+   MOV Col, #4D
+   JMP FINISH
+NO_COL:
+   MOV Col, #0D
+FINISH:
+RET
+   
+TRUYEN:
+   MOV SBUF, A
+   CALL DISPLAY_LCD
+   JNB TI, $
+   CLR TI
+RET
+
+SOLVE:
+   MOV A, OP1
+   SUBB A, #48D
+   MOV OP1, A
+   MOV A, OP2
+   SUBB A, #48D
+   MOV OP2, A
+   MOV A, OP3
+   SUBB A, #48D
+   MOV OP3, A
+   MOV A, OP4
+   SUBB A, #48D
+   MOV OP4, A
+   MOV A, OP5
+   SUBB A, #48D
+   MOV OP5, A
+   MOV R1, Dau1
+   MOV R2, Dau2
+   MOV R3, Dau3
+   MOV R4, Dau4
+   
+   CJNE R1, #42D, L1
+   MOV A, OP1
+   MOV B, OP2
+   MUL AB
+   JMP L3
+L1: 
+   CJNE R1, #47D, L2X
+   MOV A, OP1
+   MOV B, OP2
+   DIV AB
+L3: 
+   CJNE R2, #42D, L4
+   MOV B, OP3
+   MUL AB
+   JMP L6
+L4: 
+   CJNE R2, #47D, L5X
+   MOV B, OP3
+   DIV AB
+L6: 
+   CJNE R3, #42D, L7
+   MOV B, OP4
+   MUL AB
+   JMP L9
+L7:
+   CJNE R3, #47D, L8
+   MOV B, OP4
+   DIV AB
+L9: 
+   CJNE R4, #42D, L10
+   MOV B, OP5
+   MUL AB
+   JMP EXIT
+L10:   
+   CJNE R4, #47D, L11
+   MOV B, OP5
+   DIV AB
+   JMP EXIT
+L11:
+   CJNE R4, #43D, L12
+   ADD A, OP5
+   JMP EXIT
+L12:
+   SUBB A, OP5
+   JMP EXIT 
+L2X: JMP L2
+L5X: JMP L5
+L8:
+   CJNE R3, #43D, L13
+   CJNE R4, #42D, L14
+   MOV R5, A
+   MOV A, OP4
+   MOV B, OP5
+   MUL AB
+   MOV B, R5
+   ADD A, B
+   JMP EXIT
+L14:   
+   CJNE R4, #47D, L15
+   MOV R5, A
+   MOV A, OP4
+   MOV B, OP5
+   DIV AB
+   ADD A, R5
+   JMP EXIT
+L15:
+   CJNE R4, #43D, L16
+   ADD A, OP4
+   ADD A, OP5
+   JMP EXIT
+L16:
+   ADD A, OP4
+   SUBB A, OP5
+   JMP EXIT
+L13:
+   CJNE R4, #42D, L17
+   MOV R5, A
+   MOV A, OP4
+   MOV B, OP5
+   MUL AB
+   MOV B, A
+   MOV A, R5
+   SUBB A, B
+   JMP EXIT
+L17:   
+   CJNE R4, #47D, L18
+   MOV R5, A
+   MOV A, OP4
+   MOV B, OP5
+   DIV AB
+   MOV B, A
+   MOV A, R5
+   SUBB A, B
+   JMP EXIT
+L18:
+   CJNE R4, #43D, L19
+   SUBB A, OP4
+   ADD A, OP5
+   JMP EXIT
+L19:
+   SUBB A, OP4
+   SUBB A, OP5
+   JMP EXIT
+L5:
+   CJNE R2, #43D, L20
+L45:
+   CJNE R3, #43D, L21
+   ADD A, OP3
+   JMP L8
+L21:
+   CJNE R3, #45D, L22
+   ADD A, OP3
+   JMP L8
+L22:
+   CJNE R3, #42D, L23
+   MOV R5, A
+   MOV A, OP3
+   MOV B, OP4
+   MUL AB
+   CJNE R4, #42D, L24
+   MOV B, OP5
+   MUL AB
+   JMP L27
+L24:   
+   CJNE R4, #47D, L25
+   MOV B, OP5
+   DIV AB
+   JMP L27
+L25:
+   CJNE R4, #43D, L26
+   ADD A, OP5
+   JMP L27
+L26:
+   SUBB A, OP5
+L27:
+   ADD A, R5
+   JMP EXIT
+L23:
+   MOV R5, A
+   MOV A, OP3
+   MOV B, OP4
+   DIV AB
+   CJNE R4, #42D, L28
+   MOV B, OP5
+   MUL AB
+   JMP L31
+L28:   
+   CJNE R4, #47D, L29
+   MOV B, OP5
+   DIV AB
+   JMP L31
+L29:
+   CJNE R4, #43D, L30
+   ADD A, OP5
+   JMP L31
+L30:
+   SUBB A, OP5
+L31:
+   ADD A, R5
+   JMP EXIT
+L20:
+   CJNE R3, #43D, L32
+   SUBB A, OP3
+   JMP L8
+L32:
+   CJNE R3, #45D, L33
+   SUBB A, OP3
+   JMP L8
+L33:
+   CJNE R3, #42D, L34
+   MOV R5, A
+   MOV A, OP3
+   MOV B, OP4
+   MUL AB
+   CJNE R4, #42D, L35
+   MOV B, OP5
+   MUL AB
+   JMP L38
+L35:   
+   CJNE R4, #47D, L36
+   MOV B, OP5
+   DIV AB
+   JMP L38
+L36:
+   CJNE R4, #43D, L37
+   ADD A, OP5
+   JMP L38
+L37:
+   SUBB A, OP5
+L38:
+   MOV B, A
+   MOV A, R5
+   SUBB A, B
+   JMP EXIT
+L34:
+   MOV R5, A
+   MOV A, OP3
+   MOV B, OP4
+   DIV AB
+   CJNE R4, #42D, L39
+   MOV B, OP5
+   MUL AB
+   JMP L42
+L39:   
+   CJNE R4, #47D, L40
+   MOV B, OP5
+   DIV AB
+   JMP L42
+L40:
+   CJNE R4, #43D, L41
+   ADD A, OP5
+   JMP L42
+L41:
+   SUBB A, OP5
+L42:
+   MOV B, A
+   MOV A, R5
+   SUBB A, B
+   JMP EXIT
+   
+L2:   
+   CJNE R1, #43D, L43X
+   CJNE R2, #43D, L44
+   MOV A, OP1
+   ADD A, OP2
+   JMP L5
+L44:   
+   CJNE R2, #45D, L46
+   MOV A, OP1
+   ADD A, OP2
+   JMP L5
+L46:
+   CJNE R2, #42D, L47
+   CJNE R3, #42D, L48
+   MOV A, OP2
+   MOV B, OP3
+   MUL AB
+   MOV B, OP4
+   MUL AB
+   JMP L52
+L48:
+   CJNE R3, #47D, L53
+   MOV A, OP2
+   MOV B, OP3
+   MUL AB
+   MOV B, OP4
+   DIV AB
+L52:
+   CJNE R4, #42D, L49
+   MOV B, OP5
+   MUL AB
+   ADD A, OP1
+   JMP EXIT
+L49:   
+   CJNE R4, #47D, L50
+   MOV B, OP5
+   DIV AB
+   ADD A, OP1
+   JMP EXIT
+L50:
+   CJNE R4, #43D, L51
+   ADD A, OP5
+   ADD A, OP1
+   JMP EXIT
+L51:   
+   SUBB A, OP5
+   ADD A, OP1
+   JMP EXIT
+L53:   
+   MOV A, OP2
+   MOV B, OP3
+   MUL AB
+   ADD A, OP1
+   JMP L8
+L43X: JMP L43
+L47:   
+   CJNE R3, #42D, L54
+   MOV A, OP2
+   MOV B, OP3
+   DIV AB
+   MOV B, OP4
+   MUL AB
+   JMP L55
+L54:
+   CJNE R3, #47D, L59
+   MOV A, OP2
+   MOV B, OP3
+   DIV AB
+   MOV B, OP4
+   DIV AB
+L55:
+   CJNE R4, #42D, L56
+   MOV B, OP5
+   MUL AB
+   ADD A, OP1
+   JMP EXIT
+L56:   
+   CJNE R4, #47D, L57
+   MOV B, OP5
+   DIV AB
+   ADD A, OP1
+   JMP EXIT
+L57:
+   CJNE R4, #43D, L58
+   ADD A, OP5
+   ADD A, OP1
+   JMP EXIT
+L58:   
+   SUBB A, OP5
+   ADD A, OP1
+   JMP EXIT
+L59:   
+   MOV A, OP2
+   MOV B, OP3
+   DIV AB
+   ADD A, OP1
+   JMP L8
+L43:
+   CJNE R2, #43D, L60
+   MOV A, OP1
+   SUBB A, OP2
+   JMP L5
+L60:   
+   CJNE R2, #45D, L62
+   MOV A, OP1
+   SUBB A, OP2
+   JMP L5
+L62:
+   CJNE R2, #42D, L63
+   CJNE R3, #42D, L64
+   MOV A, OP2
+   MOV B, OP3
+   MUL AB
+   MOV B, OP4
+   MUL AB
+   JMP L68
+L64:
+   CJNE R3, #47D, L69
+   MOV A, OP2
+   MOV B, OP3
+   MUL AB
+   MOV B, OP4
+   DIV AB
+L68:
+   CJNE R4, #42D, L65
+   MOV B, OP5
+   MUL AB
+   MOV B, A
+   MOV A, OP1
+   SUBB A, B
+   JMP EXIT
+L65:   
+   CJNE R4, #47D, L66
+   MOV B, OP5
+   DIV AB
+   MOV B, A
+   MOV A, OP1
+   SUBB A, B
+   JMP EXIT
+L66:
+   CJNE R4, #43D, L67
+   MOV B, A
+   MOV A, OP1
+   SUBB A, B
+   ADD A, OP5
+   JMP EXIT
+L67:   
+   MOV B, A
+   MOV A, OP1
+   SUBB A, B
+   SUBB A, OP5
+   JMP EXIT
+L69:   
+   MOV A, OP2
+   MOV B, OP3
+   MUL AB
+   MOV B, A
+   MOV A, OP1
+   SUBB A, B
+   JMP L8
+L63:   
+   CJNE R3, #42D, L70
+   MOV A, OP2
+   MOV B, OP3
+   DIV AB
+   MOV B, OP4
+   MUL AB
+   JMP L71
+L70:
+   CJNE R3, #47D, L75
+   MOV A, OP2
+   MOV B, OP3
+   DIV AB
+   MOV B, OP4
+   DIV AB
+L71:
+   CJNE R4, #42D, L72
+   MOV B, OP5
+   MUL AB
+   MOV B, A
+   MOV A, OP1
+   SUBB A, B
+   JMP EXIT
+L72:   
+   CJNE R4, #47D, L73
+   MOV B, OP5
+   DIV AB
+   MOV B, A
+   MOV A, OP1
+   SUBB A, B
+   JMP EXIT
+L73:
+   CJNE R4, #43D, L74
+   MOV B, A
+   MOV A, OP1
+   SUBB A, B
+   ADD A, OP5
+   JMP EXIT
+L74:   
+   MOV B, A
+   MOV A, OP1
+   SUBB A, B
+   SUBB A, OP5
+   JMP EXIT
+L75:   
+   MOV A, OP2
+   MOV B, OP3
+   DIV AB
+   MOV B, A
+   MOV A, OP1
+   SUBB A, B
+   JMP L8
+
+EXIT:
+   MOV B, #100D
+   DIV AB
+   CJNE A, #0D, EXIT1
+   MOV A, B
+   MOV B, #10D
+   DIV AB
+   CJNE A, #0D, EXIT2
+   MOV A, B
+   ADD A, #48D
+   CALL TRUYEN
+   JMP PAUSE
+EXIT2:
+   ADD A, #48D
+   CALL TRUYEN
+   MOV A, B
+   ADD A, #48D
+   CALL TRUYEN
+   JMP PAUSE
+EXIT1:
+   ADD A, #48D
+   CALL TRUYEN
+   MOV A, B
+   MOV B, #10D
+   DIV AB
+   CJNE A, #0D, EXIT3
+   MOV A, #'0'
+   CALL TRUYEN
+   MOV A, B
+   ADD A, #48D
+   CALL TRUYEN
+   JMP PAUSE
+EXIT3:
+   ADD A, #48D
+   CALL TRUYEN
+   MOV A, B
+   ADD A, #48D
+   CALL TRUYEN
+PAUSE:
+   JMP Loop
+
+DELAY:
+   MOV R7, #5D
+HERE:
+   MOV TH0, #00H
+   MOV TL0, #00H
+   SETB TR0
+   JNB TF0, $
+   CLR TF0
+   CLR TR0
+   DJNZ R7, HERE
+RET
+
+DELAY1:
+   MOV TH0, #0ECH
+   MOV TL0, #077H
+   SETB TR0
+   JNB TF0, $
+   CLR TF0
+   CLR TR0
+RET
+
+LCD_INIT:	
+   MOV DPTR, #INIT_CMD
+   SETB FLAG
+   ACALL LCD_OUT
+   CLR FLAG
+RET			
+
+LCD_OUT:
+   CLR A
+   MOVC A, @A+DPTR
+   JZ EXITT
+   INC DPTR
+   JB FLAG, CMD
+   ACALL DISPLAY_LCD
+   JMP LCD_OUT  
+EXITT: 
+   RET
+			
+CMD:
+   ACALL CMD_WRITE
+   JMP LCD_OUT
+   
+CMD_WRITE:
+   MOV P1, A
+   CLR RS
+   CLR RW
+   SETB EN
+   ACALL DELAY1
+   CLR EN
+RET
+				
+DISPLAY_LCD:
+   MOV P1, A
+   SETB RS
+   CLR RW
+   SETB EN
+   ACALL DELAY1	
+   CLR EN
+RET
+
+INIT_CMD: 
+DB  0CH,01H,06H,38H,00H
+
+;====================
+      END
