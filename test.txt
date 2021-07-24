@@ -1,6 +1,14 @@
 git init: khởi tạo
-git add: thêm file
+git add <tên file>: thêm file
 git commit -m 'Tên commit'
 git remote add origin https://github.com/truongbaonguyen/testgithub.git
 git push -u origin master
 --------------
+git clone https://github.com/truongbaonguyen/testgithub.git
+git checkout -b tennhanh: thêm branch
+git add .: thêm tất cả các file
+git commit -m 'tên commit'
+git push -> tạo pull request trên github
+--------------
+git checkout master
+git pull
