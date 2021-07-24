@@ -1,4 +1,6 @@
-truongbaonguyen github
-first change to pull this file
-second change to push new branch
-third change to pull this file again
+git init: khởi tạo
+git add: thêm file
+git commit -m 'Tên commit'
+git remote add origin https://github.com/truongbaonguyen/testgithub.git
+git push -u origin master
+--------------
